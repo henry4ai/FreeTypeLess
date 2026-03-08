@@ -117,4 +117,6 @@ All other functionality uses Apple system frameworks (SwiftUI, AVFoundation, App
 
 ## License
 
-MIT
+[CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/)
+
+Free for personal and non-commercial use. Commercial use is not permitted without prior written permission.

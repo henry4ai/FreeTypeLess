@@ -23,7 +23,8 @@ struct SettingsView: View {
 
     @State private var bailianModels: [String] = []
     @State private var openRouterModels: [OpenRouterProvider.ModelInfo] = []
-    @State private var isLoadingModels = false
+    @State private var isLoadingBailianModels = false
+    @State private var isLoadingORModels = false
 
     // Resizable prompt heights
     @State private var promptHeights: [String: CGFloat] = [:]
@@ -150,7 +151,13 @@ struct SettingsView: View {
             }
         }
         .navigationBarBackButtonHidden(true)
-        .onAppear { loadSettings() }
+        .onAppear {
+            AppState.shared.pauseListening()
+            loadSettings()
+        }
+        .onDisappear {
+            AppState.shared.resumeListening()
+        }
     }
 
     // MARK: - Section Helper
@@ -178,7 +185,7 @@ struct SettingsView: View {
     private var bailianSection: some View {
         settingsSection("Aliyun Bailian") {
             formField("API Key") {
-                SecureField("Enter Bailian API Key", text: $bailianApiKey)
+                TextField("Enter Bailian API Key", text: $bailianApiKey)
                     .styledInput()
                     .onChange(of: bailianApiKey) { _, v in if v.count >= 10 { fetchBailianModels() } }
             }
@@ -189,16 +196,7 @@ struct SettingsView: View {
             }
 
             formField("LLM Model") {
-                if bailianModels.isEmpty {
-                    TextField("Model name (e.g. qwen3.5-plus)", text: $bailianModel)
-                        .styledInput()
-                } else {
-                    Picker("", selection: $bailianModel) {
-                        ForEach(bailianModels, id: \.self) { m in Text(m).tag(m) }
-                    }
-                    .labelsHidden()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
+                editableModelField(text: $bailianModel, placeholder: "Model name (e.g. qwen3.5-plus)", suggestions: bailianModels)
             }
 
             promptsGroup(
@@ -214,22 +212,17 @@ struct SettingsView: View {
     private var openRouterSection: some View {
         settingsSection("OpenRouter") {
             formField("API Key") {
-                SecureField("Enter OpenRouter API Key", text: $openRouterApiKey)
+                TextField("Enter OpenRouter API Key", text: $openRouterApiKey)
                     .styledInput()
                     .onChange(of: openRouterApiKey) { _, v in if v.count >= 10 { fetchOpenRouterModels() } }
             }
 
             formField("Model") {
-                if openRouterModels.isEmpty {
-                    TextField("Model ID", text: $openRouterModel)
-                        .styledInput()
-                } else {
-                    Picker("", selection: $openRouterModel) {
-                        ForEach(openRouterModels) { m in Text(m.name).tag(m.id) }
-                    }
-                    .labelsHidden()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
+                editableModelField(
+                    text: $openRouterModel,
+                    placeholder: "Model ID (e.g. google/gemini-2.5-flash)",
+                    suggestions: openRouterModels.map(\.id)
+                )
             }
 
             promptsGroup(
@@ -263,6 +256,31 @@ struct SettingsView: View {
                 .font(.system(size: 13))
                 .foregroundColor(.textLabel)
             content()
+        }
+    }
+
+    private func editableModelField(text: Binding<String>, placeholder: String, suggestions: [String]) -> some View {
+        HStack(spacing: 0) {
+            TextField(placeholder, text: text)
+                .styledInput()
+
+            if !suggestions.isEmpty {
+                Menu {
+                    ForEach(suggestions, id: \.self) { model in
+                        Button(model) { text.wrappedValue = model }
+                    }
+                } label: {
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.textSecondary)
+                        .frame(width: 32, height: 32)
+                        .background(Color.surfaceLight, in: RoundedRectangle(cornerRadius: 6))
+                        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.borderStrong, lineWidth: 1))
+                }
+                .menuStyle(.borderlessButton)
+                .frame(width: 32)
+                .padding(.leading, 6)
+            }
         }
     }
 
@@ -361,10 +379,10 @@ struct SettingsView: View {
     }
 
     private func fetchBailianModels() {
-        guard !isLoadingModels else { return }
-        isLoadingModels = true
+        guard !isLoadingBailianModels else { return }
+        isLoadingBailianModels = true
         Task {
-            defer { isLoadingModels = false }
+            defer { isLoadingBailianModels = false }
             do {
                 var request = URLRequest(url: URL(string: "\(bailianBaseUrl)/models")!)
                 request.setValue("Bearer \(bailianApiKey)", forHTTPHeaderField: "Authorization")
@@ -385,10 +403,10 @@ struct SettingsView: View {
     }
 
     private func fetchOpenRouterModels() {
-        guard !isLoadingModels else { return }
-        isLoadingModels = true
+        guard !isLoadingORModels else { return }
+        isLoadingORModels = true
         Task {
-            defer { isLoadingModels = false }
+            defer { isLoadingORModels = false }
             do {
                 let models = try await OpenRouterProvider.fetchModels(apiKey: openRouterApiKey)
                 await MainActor.run {

@@ -71,13 +71,31 @@ final class OpenRouterProvider: LLMProvider {
     }
 
     private func streamSSE(request: URLRequest, onChunk: @escaping (String) -> Void) async throws -> String {
+        // Log request details (mask API key)
+        let maskedKey = settings.openRouterApiKey.prefix(8) + "..."
+        print("[OpenRouter] Request: \(request.url?.absoluteString ?? "nil"), key=\(maskedKey)")
+
         let (bytes, response) = try await URLSession.shared.bytes(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw LLMError.networkError("Invalid response")
         }
 
-        try checkHTTPStatus(httpResponse)
+        print("[OpenRouter] Response status: \(httpResponse.statusCode)")
+
+        // For non-200 responses, read the error body before throwing
+        if !(200...299).contains(httpResponse.statusCode) {
+            var errorBody = ""
+            for try await line in bytes.lines {
+                errorBody += line + "\n"
+            }
+            print("[OpenRouter] Error response body:\n\(errorBody)")
+            switch httpResponse.statusCode {
+            case 401, 403: throw LLMError.invalidApiKey
+            case 429: throw LLMError.rateLimited
+            default: throw LLMError.serverError(httpResponse.statusCode, errorBody.trimmingCharacters(in: .whitespacesAndNewlines))
+            }
+        }
 
         var fullText = ""
 
@@ -100,15 +118,6 @@ final class OpenRouterProvider: LLMProvider {
         }
 
         return fullText
-    }
-
-    private func checkHTTPStatus(_ response: HTTPURLResponse) throws {
-        switch response.statusCode {
-        case 200...299: return
-        case 401, 403: throw LLMError.invalidApiKey
-        case 429: throw LLMError.rateLimited
-        default: throw LLMError.serverError(response.statusCode, HTTPURLResponse.localizedString(forStatusCode: response.statusCode))
-        }
     }
 }
 

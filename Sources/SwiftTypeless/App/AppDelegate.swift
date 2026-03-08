@@ -15,6 +15,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var observationTask: Task<Void, Never>?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Ensure the app behaves as a regular foreground app even when
+        // launched via `swift run` (which bypasses Info.plist).
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
+
         setupTrayMenu()
         overlayController = OverlayWindowController()
         startObserving()

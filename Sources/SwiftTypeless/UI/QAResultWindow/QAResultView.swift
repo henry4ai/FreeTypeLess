@@ -87,10 +87,7 @@ struct QAResultView: View {
                             }
                             .padding(.vertical, 4)
                         } else {
-                            Text(appState.qaAnswer)
-                                .font(.system(size: 14))
-                                .foregroundColor(.textPrimary)
-                                .lineSpacing(4)
+                            MarkdownView(text: appState.qaAnswer)
                                 .textSelection(.enabled)
                         }
 

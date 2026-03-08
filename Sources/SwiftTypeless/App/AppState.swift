@@ -50,6 +50,14 @@ final class AppState {
         keyListener.stop()
     }
 
+    func pauseListening() {
+        keyListener.pause()
+    }
+
+    func resumeListening() {
+        keyListener.resume()
+    }
+
     // MARK: - Key Listener Setup
 
     private func setupKeyListener() {
@@ -255,7 +263,7 @@ final class AppState {
         }
 
         if mode == .qa {
-            return try await processQAAudio(wavData: wavData, using: provider, prompt: prompt)
+            return try await processQAAudio(wavData: wavData, context: context, using: provider, prompt: prompt)
         } else {
             // Audio-to-text multimodal: first token → 50%, done → 100%
             var receivedFirstToken = false
@@ -265,7 +273,7 @@ final class AppState {
                 onChunk: { [weak self] _ in
                     guard let self, !receivedFirstToken else { return }
                     receivedFirstToken = true
-                    DispatchQueue.main.async {
+                    Task { @MainActor in
                         withAnimation(.easeInOut(duration: 0.3)) { self.processingProgress = 0.5 }
                     }
                 }
@@ -292,7 +300,7 @@ final class AppState {
                 using: provider,
                 prompt: prompt
             ) { [weak self] chunk in
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     self?.qaAnswer += chunk
                 }
             }
@@ -307,8 +315,9 @@ final class AppState {
         }
     }
 
-    private func processQAAudio(wavData: Data, using provider: OpenRouterProvider, prompt: String) async throws -> String {
+    private func processQAAudio(wavData: Data, context: String = "", using provider: OpenRouterProvider, prompt: String) async throws -> String {
         qaQuestion = "(Audio question)"
+        qaContext = context
         qaAnswer = ""
         qaIsDone = false
         qaHasError = false
@@ -319,7 +328,7 @@ final class AppState {
                 audioData: wavData,
                 systemPrompt: prompt
             ) { [weak self] chunk in
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     self?.qaAnswer += chunk
                 }
             }

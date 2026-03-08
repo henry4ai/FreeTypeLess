@@ -72,6 +72,18 @@ final class KeyListener {
         altTimer = nil
     }
 
+    func pause() {
+        if let tap = eventTap {
+            CGEvent.tapEnable(tap: tap, enable: false)
+        }
+    }
+
+    func resume() {
+        if let tap = eventTap {
+            CGEvent.tapEnable(tap: tap, enable: true)
+        }
+    }
+
     // MARK: - Event Handling
 
     private func handleEvent(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {

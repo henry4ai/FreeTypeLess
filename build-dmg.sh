@@ -71,6 +71,7 @@ cp "$PROJECT_DIR/Resources/Info.plist" "$APP_BUNDLE/Contents/"
 # 5. Copy resources (audio, icon)
 cp -R "$PROJECT_DIR/Resources/audio" "$APP_BUNDLE/Contents/Resources/"
 cp "$PROJECT_DIR/Resources/hands.png" "$APP_BUNDLE/Contents/Resources/"
+cp "$PROJECT_DIR/Resources/AppIcon.icns" "$APP_BUNDLE/Contents/Resources/" 2>/dev/null || true
 
 # Also copy SPM-bundled resources if they exist
 if [ -d "$BUILD_DIR/SwiftTypeless_SwiftTypeless.bundle" ]; then

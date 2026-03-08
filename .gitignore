@@ -1,0 +1,36 @@
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Build & output
+out/
+dist/
+*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE / Editor
+.idea/
+*.swp
+*.swo
+*~
+
+# Electron Forge
+.releases/
+
+# Misc
+*.tgz
+.cache/
+
+.build/

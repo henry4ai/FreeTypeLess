@@ -77,7 +77,7 @@ On first launch, click **Settings** to configure your provider:
 - API Key — your OpenRouter API key
 - Model — defaults to `google/gemini-2.5-flash` (auto-fetches audio-capable models)
 
-Each provider has customizable system prompts for transcription polishing, translation, and Q&A.
+Each provider has customizable system prompts for transcription polishing, translation, and Q&A. You can edit these prompts to match your personal writing style — for example, making output more formal or casual, shorter or more verbose, adding emojis, or enforcing specific formatting rules.
 
 You can also create a `.env` file in the project root:
 

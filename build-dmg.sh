@@ -81,22 +81,10 @@ fi
 # 6. Create PkgInfo
 echo -n "APPL????" > "$APP_BUNDLE/Contents/PkgInfo"
 
-# 7. Create app icon from hands.png (if iconutil is available)
-if command -v iconutil &> /dev/null && command -v sips &> /dev/null; then
-    echo "==> Generating app icon..."
-    ICONSET="$PROJECT_DIR/dist/AppIcon.iconset"
-    mkdir -p "$ICONSET"
-    SRC_ICON="$PROJECT_DIR/Resources/hands.png"
-    for size in 16 32 64 128 256 512; do
-        sips -z $size $size "$SRC_ICON" --out "$ICONSET/icon_${size}x${size}.png" > /dev/null 2>&1
-        double=$((size * 2))
-        sips -z $double $double "$SRC_ICON" --out "$ICONSET/icon_${size}x${size}@2x.png" > /dev/null 2>&1
-    done
-    iconutil -c icns "$ICONSET" -o "$APP_BUNDLE/Contents/Resources/AppIcon.icns"
-    rm -rf "$ICONSET"
-    # Add icon reference to Info.plist
-    /usr/libexec/PlistBuddy -c "Add :CFBundleIconFile string AppIcon" "$APP_BUNDLE/Contents/Info.plist" 2>/dev/null || \
-    /usr/libexec/PlistBuddy -c "Set :CFBundleIconFile AppIcon" "$APP_BUNDLE/Contents/Info.plist"
+# 7. Copy pre-built app icon (rounded corners version from Resources/)
+echo "==> Copying app icon..."
+if [ -f "$PROJECT_DIR/Resources/AppIcon.icns" ]; then
+    cp "$PROJECT_DIR/Resources/AppIcon.icns" "$APP_BUNDLE/Contents/Resources/AppIcon.icns"
 fi
 
 # 8. Code sign with entitlements (use stable certificate)

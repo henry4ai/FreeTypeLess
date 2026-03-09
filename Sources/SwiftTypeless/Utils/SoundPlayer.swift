@@ -20,27 +20,8 @@ final class SoundPlayer {
     }
 
     private func preload(_ name: String, ext: String) {
-        // Look in Resources/audio/ relative to executable
-        let candidates = [
-            Bundle.main.url(forResource: name, withExtension: ext),
-            Bundle.main.url(forResource: name, withExtension: ext, subdirectory: "Resources/audio"),
-        ]
-
-        // Also check working directory
-        let cwdPath = FileManager.default.currentDirectoryPath + "/Resources/audio/\(name).\(ext)"
-
-        for candidate in candidates {
-            if let url = candidate, let player = try? AVAudioPlayer(contentsOf: url) {
-                player.prepareToPlay()
-                players[name] = player
-                return
-            }
-        }
-
-        // Fallback: check cwd path
-        let cwdURL = URL(fileURLWithPath: cwdPath)
-        if FileManager.default.fileExists(atPath: cwdPath),
-           let player = try? AVAudioPlayer(contentsOf: cwdURL) {
+        if let url = ResourceLocator.url(forResource: name, withExtension: ext, subdirectory: "audio"),
+           let player = try? AVAudioPlayer(contentsOf: url) {
             player.prepareToPlay()
             players[name] = player
         }

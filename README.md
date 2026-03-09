@@ -14,6 +14,15 @@ FreeTypeless lets you input text anywhere on macOS by simply holding a hotkey an
 - **Markdown Rendering** — Q&A answers rendered with full Markdown support
 - **Works Everywhere** — Global hotkeys and auto-paste work across all applications
 
+## Why Native Swift
+
+FreeTypeless is written in pure Swift and SwiftUI, with no Electron or cross‑platform runtime bundled in.
+
+- **Tiny install size** — the signed `.app` is around **2 MB** once installed, with no extra frameworks or runtimes to download.
+- **High performance** — native Swift code starts up almost instantly and keeps end‑to‑end latency (from pressing `⌥` to text appearing) extremely low.
+- **Low resource usage** — compared with apps built using web engines, FreeTypeless uses less memory and CPU, so it stays quiet in the background.
+- **Deep macOS integration** — built directly on Apple frameworks (SwiftUI, AVFoundation, AppKit, CoreGraphics), so global hotkeys, accessibility, and pasteboard integration are smooth and reliable.
+
 ## Keyboard Shortcuts
 
 | Shortcut | Action |

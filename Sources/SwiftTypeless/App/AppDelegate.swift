@@ -14,11 +14,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let appState = AppState.shared
     private var observationTask: Task<Void, Never>?
 
-    func applicationDidFinishLaunching(_ notification: Notification) {
-        // Ensure the app behaves as a regular foreground app even when
-        // launched via `swift run` (which bypasses Info.plist).
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        let current = NSApp.activationPolicy()
+        print("[AppDelegate] willFinishLaunching — current policy: \(current.rawValue) (0=regular, 1=accessory, 2=prohibited)")
         NSApp.setActivationPolicy(.regular)
+        let after = NSApp.activationPolicy()
+        print("[AppDelegate] willFinishLaunching — policy after set: \(after.rawValue)")
+    }
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.activate(ignoringOtherApps: true)
+        setAppIcon()
+
+        // Force Dock to recognize the app icon after a short delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            NSApp.setActivationPolicy(.regular)
+            NSApp.dockTile.display()
+        }
 
         setupTrayMenu()
         overlayController = OverlayWindowController()
@@ -46,17 +58,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
 
         if let button = statusItem?.button {
-            if let iconURL = Bundle.main.url(forResource: "hands", withExtension: "png", subdirectory: "Resources"),
-               let icon = NSImage(contentsOf: iconURL) {
-                icon.size = NSSize(width: 18, height: 18)
-                icon.isTemplate = true
-                button.image = icon
-            } else {
-                // Fallback to SF Symbol
-                button.image = NSImage(systemSymbolName: "mic.circle", accessibilityDescription: "SwiftTypeless")
-                button.image?.size = NSSize(width: 18, height: 18)
-                button.image?.isTemplate = true
-            }
+            button.image = NSImage(systemSymbolName: "mic.fill", accessibilityDescription: "FreeTypeless")
+            button.image?.size = NSSize(width: 18, height: 18)
+            button.image?.isTemplate = true
         }
 
         let menu = NSMenu()
@@ -188,6 +192,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     self.appState.showQAWindow = false
                 }
             }
+        }
+    }
+
+    // MARK: - App Icon
+
+    private func setAppIcon() {
+        print("[AppDelegate] Setting app icon...")
+        print("[AppDelegate] Bundle path: \(Bundle.main.bundlePath)")
+        if let icnsURL = ResourceLocator.url(forResource: "AppIcon", withExtension: "icns"),
+           let icon = NSImage(contentsOf: icnsURL) {
+            NSApp.applicationIconImage = icon
+            NSApp.dockTile.display()
+            print("[AppDelegate] App icon set from: \(icnsURL.path)")
+        } else if let pngURL = ResourceLocator.url(forResource: "hands", withExtension: "png"),
+                  let icon = NSImage(contentsOf: pngURL) {
+            NSApp.applicationIconImage = icon
+            NSApp.dockTile.display()
+            print("[AppDelegate] App icon set from: \(pngURL.path)")
+        } else {
+            print("[AppDelegate] WARNING: No icon found!")
         }
     }
 

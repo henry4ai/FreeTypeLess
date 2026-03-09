@@ -62,12 +62,14 @@ final class AliyunSTTProvider {
             // Send commit + finish
             sendJSON(to: streamingSession, ["type": "input_audio_buffer.commit"])
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(for: .milliseconds(100))
                 self?.sendJSON(to: self?.streamingSession, ["type": "session.finish"])
             }
 
             // Safety timeout: if server doesn't respond within 10s, resume with what we have
-            DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(for: .seconds(10))
                 guard let self, let cont = self.continuation else { return }
                 self.continuation = nil
                 self.cleanupStreaming()

@@ -291,7 +291,9 @@ final class AliyunSTTProvider {
                 print("[AliyunSTT] Returning partial transcription despite error")
                 pending?.resume(returning: transcription)
             } else {
-                pending?.resume(throwing: LLMError.serverError(0, errorMsg))
+                // No transcription and error (e.g. no speech detected) — return empty string silently
+                print("[AliyunSTT] No transcription available, returning empty")
+                pending?.resume(returning: "")
             }
 
         default:

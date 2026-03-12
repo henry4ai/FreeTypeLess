@@ -158,13 +158,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             window.contentView = NSHostingView(rootView: contentView)
             window.isOpaque = false
             window.backgroundColor = .clear
-            window.center()
+            // Position on the screen where the cursor is (multi-monitor aware)
+            let mouseLocation = NSEvent.mouseLocation
+            let screen = NSScreen.screens.first { NSMouseInRect(mouseLocation, $0.frame, false) } ?? NSScreen.main ?? NSScreen.screens.first
+            if let screen {
+                let visibleFrame = screen.visibleFrame
+                let x = visibleFrame.origin.x + (visibleFrame.width - window.frame.width) / 2
+                let y = visibleFrame.origin.y + (visibleFrame.height - window.frame.height) / 2
+                window.setFrameOrigin(NSPoint(x: x, y: y))
+            } else {
+                window.center()
+            }
             window.collectionBehavior = [.canJoinAllSpaces]
             window.isReleasedWhenClosed = false
             window.isMovableByWindowBackground = true
             window.hasShadow = true
             window.minSize = NSSize(width: 400, height: 200)
             qaWindow = window
+        }
+
+        // Re-center on the screen where the cursor currently is
+        if let qaWindow {
+            let mouseLocation = NSEvent.mouseLocation
+            let screen = NSScreen.screens.first { NSMouseInRect(mouseLocation, $0.frame, false) } ?? NSScreen.main
+            if let screen {
+                let visibleFrame = screen.visibleFrame
+                let x = visibleFrame.origin.x + (visibleFrame.width - qaWindow.frame.width) / 2
+                let y = visibleFrame.origin.y + (visibleFrame.height - qaWindow.frame.height) / 2
+                qaWindow.setFrameOrigin(NSPoint(x: x, y: y))
+            }
         }
 
         qaWindow?.level = .floating

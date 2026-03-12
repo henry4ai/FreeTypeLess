@@ -77,12 +77,22 @@ final class AppState {
             self?.handleCancel()
         }
 
-        // Detect selected text immediately when Alt is pressed (before recording starts)
+        // When Alt is pressed: detect selected text AND start recording immediately
+        // (don't wait for the 250ms combo delay — avoids losing the beginning of speech)
         keyListener.onAltPressed = { [weak self] in
             self?.pendingSelectedText = SelectedTextDetector.detect()
             if let text = self?.pendingSelectedText, !text.isEmpty {
                 print("[AppState] Detected selected text: \(text.prefix(80))")
             }
+            self?.startRecordingEarly()
+        }
+
+        // Alt released before combo delay — clean up early recording
+        keyListener.onAltReleasedWithoutRecording = { [weak self] in
+            guard let self, self.audioRecorder.isRecording else { return }
+            print("[AppState] Alt released before combo delay, cancelling early recording")
+            self.audioRecorder.cancel()
+            self.aliyunSTT.cancelStreaming()
         }
 
         aliyunSTT.onInterimResult = { [weak self] text in
@@ -107,16 +117,14 @@ final class AppState {
 
     // MARK: - Recording Flow
 
-    private func handleRecordingStart(mode: RecordingMode) {
-        print("[AppState] Recording start: \(mode)")
-        status = .recording(mode)
-        interimText = ""
-        showOverlay = true
+    /// Start audio recording immediately when Alt is pressed (before combo detection).
+    /// This eliminates the 250ms gap where speech would be lost.
+    private func startRecordingEarly() {
+        guard !audioRecorder.isRecording else { return }
         soundPlayer.playBegin()
-
         do {
             try audioRecorder.startRecording()
-            print("[AppState] Audio recorder started")
+            print("[AppState] Audio recorder started early (pre-combo)")
 
             // Start streaming ASR in Bailian mode
             if SettingsStore.shared.provider == .bailian {
@@ -125,6 +133,34 @@ final class AppState {
         } catch {
             print("[AppState] Microphone error: \(error)")
             status = .error("Microphone error: \(error.localizedDescription)")
+        }
+    }
+
+    private func handleRecordingStart(mode: RecordingMode) {
+        print("[AppState] Recording start: \(mode)")
+        status = .recording(mode)
+        interimText = ""
+        showOverlay = true
+
+        // Sound already played in startRecordingEarly(); play here only as fallback
+        if !audioRecorder.isRecording {
+            soundPlayer.playBegin()
+        }
+
+        // Audio recording already started in startRecordingEarly(),
+        // only start here as fallback if it wasn't started yet.
+        if !audioRecorder.isRecording {
+            do {
+                try audioRecorder.startRecording()
+                print("[AppState] Audio recorder started (fallback)")
+
+                if SettingsStore.shared.provider == .bailian {
+                    aliyunSTT.startStreaming()
+                }
+            } catch {
+                print("[AppState] Microphone error: \(error)")
+                status = .error("Microphone error: \(error.localizedDescription)")
+            }
         }
     }
 
@@ -156,7 +192,11 @@ final class AppState {
                     result = try await processOpenRouter(wavData: wavData, mode: mode, context: selectedContext)
                 }
 
-                if mode == .qa {
+                if result.isEmpty {
+                    // No speech detected — silently dismiss
+                    status = .ready
+                    showOverlay = false
+                } else if mode == .qa {
                     // QA mode: show in QA window (already streamed via processQA)
                 } else {
                     // Transcribe/Translate: paste result then immediately hide overlay
@@ -210,7 +250,8 @@ final class AppState {
         }
 
         guard !transcription.isEmpty else {
-            throw LLMError.serverError(0, "No speech detected")
+            print("[AppState] No speech detected, ignoring silently")
+            return ""
         }
 
         // ASR done → 50%

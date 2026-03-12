@@ -18,6 +18,7 @@ final class KeyListener {
     var onModeChange: ((RecordingMode) -> Void)?
     var onCancel: (() -> Void)?
     var onAltPressed: (() -> Void)?
+    var onAltReleasedWithoutRecording: (() -> Void)?
 
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
@@ -133,6 +134,11 @@ final class KeyListener {
 
             if isRecording {
                 stopRecording()
+            } else {
+                // Alt released before combo delay fired — notify to clean up early recording
+                DispatchQueue.main.async { [weak self] in
+                    self?.onAltReleasedWithoutRecording?()
+                }
             }
         }
 
